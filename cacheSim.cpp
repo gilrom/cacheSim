@@ -186,7 +186,7 @@ void CacheSim::read(uint32_t addr){
 			num_of_mem_acc++;
 			Block& b = l2.selectVictim(addr);
 			if(!b.valid){
-				l2.fillData(addr);
+				l2.fillData(addr, b.way);
 			}
 			else{
 				bool dirty_in_l1 = l1.snoop(b.addr);
@@ -197,31 +197,31 @@ void CacheSim::read(uint32_t addr){
 					//write back to memory
 				}
 				l2.invalidate(b.addr);
-				l2.fillData(addr);
+				l2.fillData(addr, b.way);
 			}
 			Block& b = l1.selectVictim(addr);
 			if(!b.valid){
-				l1.fillData(addr);
+				l1.fillData(addr, b.way);
 			}
 			else{
 				if(b.dirty){
 					l2.writeReq(b.addr);
 				}
 				l1.invalidate(b.addr);
-				l1.fillData(addr);
+				l1.fillData(addr, b.way);
 			}
 		}
 		else{
 			Block& b = l1.selectVictim(addr);
 			if(!b.valid){
-				l1.fillData(addr);
+				l1.fillData(addr, b.way);
 			}
 			else{
 				if(b.dirty){
 					l2.writeReq(b.addr);
 				}
 				l1.invalidate(b.addr);
-				l1.fillData(addr);
+				l1.fillData(addr, b.way);
 			}
 		}
 	}
