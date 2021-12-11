@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <iostream>
 
+
 class Block{
     public:
         bool valid, dirty;
