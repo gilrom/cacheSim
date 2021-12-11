@@ -191,14 +191,37 @@ void Cache::fillData(uint32_t addr, int way)
 	updateLru(addr, set);
 }
 
+double Cache::getMissRate()
+{
+	return (double)num_of_miss/(double)num_of_calls;
+}
+
+uint Cache::getNumOfAcc();
+
 CacheSim::CacheSim(uint MemCyc, uint BSize, uint L1Size, uint L2Size, uint L1Assoc,
 			uint L2Assoc, uint L1Cyc, uint L2Cyc, uint WrAlloc) :
 
 	alloc(WrAlloc), block_size(BSize), mem_cyc(MemCyc), num_of_mem_acc(0), 
-	total_time(0), L1Cyc(L1Cyc), L2Cyc(L2Cyc)
+	L1Cyc(L1Cyc), L2Cyc(L2Cyc),
+	l1(L1Size, L1Assoc, BSize),	l2(L2Size, L2Assoc, BSize)
+{}
+
+double CacheSim::getL1MissRate()
 {
-	l1 = Cache(L1Size, L1Assoc, BSize);
-	l2 = Cache(L2Size, L2Assoc, BSize);
+	return l1.getMissRate();
+}
+double CacheSim::getL2MissRate()
+{
+	return l2.getMissRate();
+}
+
+double CacheSim::avgAccTime()
+{
+	double total_time = (l1.getNumOfAcc() * L1Cyc) + 
+						(l2.getNumOfAcc() * L2Cyc) + 
+			 			(num_of_mem_acc * mem_cyc);
+	double total_calls = (l1.getNumOfAcc()+l2.getNumOfAcc()+num_of_mem_acc);
+	return = total_time/total_calls;
 }
 
 void CacheSim::read(uint32_t addr){
@@ -302,7 +325,7 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	CacheSim simulator(MemCyc, BSize, L1Size, L2Size, L1Assoc,
+	CacheSim simulator (MemCyc, BSize, L1Size, L2Size, L1Assoc,
 			L2Assoc, L1Cyc, L2Cyc, WrAlloc);
 
 	while (getline(file, line)) {
@@ -332,16 +355,14 @@ int main(int argc, char **argv) {
 
 		if(operation == 'R')
 		{
-
+			simulator.read(num);
 		}
 
 	}
 
-	double L1MissRate;
-	double L2MissRate;
-	double avgAccTime;
-
-	
+	double L1MissRate = simulator.getL1MissRate();
+	double L2MissRate = simulator.getL1MissRate();
+	double avgAccTime = simulator.avgAccTime();;
 
 	printf("L1miss=%.03f ", L1MissRate);
 	printf("L2miss=%.03f ", L2MissRate);
