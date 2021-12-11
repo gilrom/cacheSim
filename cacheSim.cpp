@@ -43,16 +43,27 @@ Cache::Cache(uint size, uint associativ, uint block_size) : size(size),
 }
 
 Cache::~Cache(){
-	for (int i = 0; i < (1 << num_of_set_bits); i++)
+	std::cout<<"is it here?"<<endl;
+	uint num_of_Lines = 1 << num_of_set_bits;
+	for(int i = 0 ; i < num_of_Lines ; i++)
 	{
 		delete[] table[i];
 	}
 	delete[] table;
+	std::cout<<"its not here"<<endl;
 }
 
-void Cache::parseSetAndTag(uint addr, uint* tag, uint* set){
-	*tag = addr >> (32 - num_of_tag_bits);
-	*set = (addr << num_of_tag_bits) >> (32 - num_of_set_bits);
+void Cache::parseSetAndTag(uint32_t addr, uint* tag, uint* set){
+
+	uint64_t tag64, set64;
+	uint64_t ThirtyTwoBitsMask = 0xFFFFFFFF;
+	tag64 = addr >> (32 - num_of_tag_bits);
+	*tag = tag64;
+
+	set64 = addr << num_of_tag_bits;
+	set64 = set64 & ThirtyTwoBitsMask;
+	set64 = set64 >> (32 - num_of_set_bits);
+	*set = set64;
 }
 
 void Cache::updateLru(uint index_of_adrr, uint set){
@@ -134,9 +145,9 @@ bool Cache::readReq(uint32_t addr)
 	num_of_calls++;
 	uint tag, set;
 	parseSetAndTag(addr, &tag, &set);
-
 	for (int i = 0; i < (1 << assoc); i++)
 	{
+
 		if(!table[set][i].valid)
 		{
 			continue;
@@ -177,15 +188,27 @@ Block& Cache::selectVictim(uint32_t addr)
 	return table[set][index];
 }
 
-void Cache::fillData(uint32_t addr, int way)
+void Cache::fillData(uint32_t addr, uint way)
 {
 	uint tag, set;
 	parseSetAndTag(addr, &tag, &set);
-	table[set][way].tag = tag;
-	table[set][way].valid = true;
-	table[set][way].dirty = false;
-	table[set][way].addr = addr;
-	updateLru(addr, set);
+
+	Block to_insert;
+	to_insert.addr = addr;
+	to_insert.dirty = false ;
+	to_insert.lru_key = table[set][way].lru_key;
+	to_insert.tag = tag;
+	to_insert.valid = true;
+	to_insert.way = way;
+
+	table[set][way] = to_insert;
+
+	/*
+	table[set][way].tag = ;
+	table[set][way].valid = ;
+	table[set][way].dirty = ;
+	table[set][way].addr = ; */
+	updateLru(way, set);
 }
 
 double Cache::getMissRate()
@@ -202,7 +225,8 @@ CacheSim::CacheSim(uint MemCyc, uint BSize, uint L1Size, uint L2Size, uint L1Ass
 
 	alloc(WrAlloc), block_size(BSize), mem_cyc(MemCyc), num_of_mem_acc(0), 
 	L1Cyc(L1Cyc), L2Cyc(L2Cyc),
-	l1(L1Size, L1Assoc, BSize),	l2(L2Size, L2Assoc, BSize)
+	l1(L1Size, L1Assoc, BSize),	
+	l2(L2Size, L2Assoc, BSize)
 {}
 
 double CacheSim::getL1MissRate()

@@ -25,7 +25,7 @@ class Cache{
 
     private:
     void updateLru(uint index_of_adrr, uint set);
-    void parseSetAndTag(uint addr, uint* tag, uint* set);
+    void parseSetAndTag(uint32_t addr, uint* tag, uint* set);
     public:
     Cache(uint size, uint associativ, uint block_size);
     ~Cache();
@@ -34,7 +34,7 @@ class Cache{
     bool writeReq(uint32_t addr, bool realReq = false);
     bool readReq(uint32_t addr); //if founded it update the LRU key //it updates the num_of_calls and num_of_miss
     Block& selectVictim(uint32_t addr);//this will returns null if there is a free space
-    void fillData(uint32_t addr, int ind);
+    void fillData(uint32_t addr, uint ind);
     double getMissRate();
     uint getNumOfAcc();
 };
