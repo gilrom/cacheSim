@@ -1,7 +1,6 @@
 /* 046267 Computer Architecture - Winter 20/21 - HW #2 */
 
 #include <cstdlib>
-#include <stdlib>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -16,11 +15,10 @@ using std::cerr;
 using std::ifstream;
 using std::stringstream;
 
-
 /*Implementation for classes*/
 
-Cache::Cache(uint size, uint associativ, uint cycle, uint block_size) : size(size),
- num_of_calls(0), num_of_miss(0), assoc(associativ), acc_cyc(cycle), table(nullptr)
+Cache::Cache(uint size, uint associativ, uint block_size) : size(size),
+ num_of_calls(0), num_of_miss(0), assoc(associativ), table(NULL)
 {
 	
 	num_of_set_bits = size - (block_size + assoc);
@@ -107,7 +105,7 @@ bool Cache::snoop(uint32_t addr)
 	return false;
 }
 
-bool Cache::writeReq(uint32_t addr, bool realReq = false)
+bool Cache::writeReq(uint32_t addr, bool realReq)
 {
 	if (realReq) num_of_calls++;
 
@@ -134,7 +132,6 @@ bool Cache::writeReq(uint32_t addr, bool realReq = false)
 bool Cache::readReq(uint32_t addr)
 {
 	num_of_calls++;
-
 	uint tag, set;
 	parseSetAndTag(addr, &tag, &set);
 
@@ -193,10 +190,12 @@ void Cache::fillData(uint32_t addr, int way)
 
 double Cache::getMissRate()
 {
-	return (double)num_of_miss/(double)num_of_calls;
+	return double(num_of_miss) / double(num_of_calls);
 }
 
-uint Cache::getNumOfAcc();
+uint Cache::getNumOfAcc(){
+	return num_of_calls;
+}
 
 CacheSim::CacheSim(uint MemCyc, uint BSize, uint L1Size, uint L2Size, uint L1Assoc,
 			uint L2Assoc, uint L1Cyc, uint L2Cyc, uint WrAlloc) :
@@ -221,7 +220,7 @@ double CacheSim::avgAccTime()
 						(l2.getNumOfAcc() * L2Cyc) + 
 			 			(num_of_mem_acc * mem_cyc);
 	double total_calls = (l1.getNumOfAcc()+l2.getNumOfAcc()+num_of_mem_acc);
-	return = total_time/total_calls;
+	return total_time / total_calls;
 }
 
 void CacheSim::read(uint32_t addr){
@@ -243,7 +242,7 @@ void CacheSim::read(uint32_t addr){
 				l2.invalidate(b.addr);
 				l2.fillData(addr, b.way);
 			}
-			Block& b = l1.selectVictim(addr);
+			b = l1.selectVictim(addr);
 			if(!b.valid){
 				l1.fillData(addr, b.way);
 			}
@@ -353,7 +352,7 @@ int main(int argc, char **argv) {
 		// DEBUG - remove this line
 		cout << " (dec) " << num << endl;
 
-		if(operation == 'R')
+		if(operation == 'r')
 		{
 			simulator.read(num);
 		}
