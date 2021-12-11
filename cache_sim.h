@@ -10,6 +10,7 @@ class Block{
         uint lru_key;
         uint32_t addr; //search will be by tag bits only
         uint32_t tag; //so we must saves tose tags add cot if needed
+        const uint way; //block way int the set (index)
 };
 
 class Cache{
@@ -33,7 +34,7 @@ class Cache{
     bool writeReq(uint32_t addr, bool realReq = false);
     bool readReq(uint32_t addr); //if founded it update the LRU key //it updates the num_of_calls and num_of_miss
     Block& selectVictim(uint32_t addr);//this will returns null if there is a free space
-    void fillData(uint32_t addr);
+    void fillData(uint32_t addr, int ind);
 };
 
 class CacheSim{
@@ -51,5 +52,4 @@ class CacheSim{
         ~CacheSim();
         void read(uint32_t addr);
         void write(uint32_t addr);
-
 };
