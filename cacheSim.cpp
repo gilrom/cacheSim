@@ -92,20 +92,14 @@ bool Cache::snoop(uint32_t addr)
 		{
 			table[set][i].valid = false;	
 			return table[set][i].dirty;
-
 		}
 	}
 	return false;
 }
 
-
 bool Cache::writeReq(uint32_t addr, bool realReq = false)
 {
-	if(!readReq)
-	{
-		return false;
-	}
-	num_of_calls++;
+	if (realReq) num_of_calls++;
 
 	uint tag, set;
 	parseSetAndTag(addr, &tag, &set);
@@ -114,13 +108,12 @@ bool Cache::writeReq(uint32_t addr, bool realReq = false)
 	{
 		if(table[set][i].tag == tag)
 		{
-			if(write_allocate)
-				table[set][i].dirty = true;	
-			updateLru(i,set);
+			table[set][i].dirty = true;	
+			if (realReq) updateLru(i,set);
 			return true;
 		}
 	}
-	num_of_miss++;
+	if (realReq) num_of_miss++;
 	return false;
 }
 
@@ -143,19 +136,30 @@ bool Cache::readReq(uint32_t addr)
 	return false;
 }
 
+//on work
 Block& Cache::selectVictim(uint32_t addr)
 {
 	uint tag, set;
 	parseSetAndTag(addr, &tag, &set);
 	uint min_lru_key = 1 << assoc;
+	int index = 0;
 
 	for (int i = 0; i < (1 << assoc); i++)
 	{
-		if(table[set][i].tag == tag)
+		if(table[set][i].valid)
 		{
-			return true;
+			if(min_lru_key > table[set][i].lru_key)
+			{
+				min_lru_key = table[set][i].lru_key;
+				index = i;
+			}
+		}
+		else
+		{
+			return table[set][i];
 		}
 	}
+	return table[set][index];
 }
 
 
@@ -173,7 +177,6 @@ void CacheSim::read(uint32_t addr){
 				if(dirty_in_l1){
 					l2.writeReq(b.addr);
 				}
-				l1.invalidate(b.addr);//snoop will do it - please delete this line
 				if(b.dirty){
 					//write back to memory
 				}
