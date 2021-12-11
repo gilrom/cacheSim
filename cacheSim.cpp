@@ -191,6 +191,16 @@ void Cache::fillData(uint32_t addr, int way)
 	updateLru(addr, set);
 }
 
+CacheSim::CacheSim(uint MemCyc, uint BSize, uint L1Size, uint L2Size, uint L1Assoc,
+			uint L2Assoc, uint L1Cyc, uint L2Cyc, uint WrAlloc) :
+
+	alloc(WrAlloc), block_size(BSize), mem_cyc(MemCyc), num_of_mem_acc(0), 
+	total_time(0), L1Cyc(L1Cyc), L2Cyc(L2Cyc)
+{
+	l1 = Cache(L1Size, L1Assoc, BSize);
+	l2 = Cache(L2Size, L2Assoc, BSize);
+}
+
 void CacheSim::read(uint32_t addr){
 	if(!l1.readReq(addr)){
 		if(!l2.readReq(addr)){
@@ -292,7 +302,8 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	CacheSim simulator();
+	CacheSim simulator(MemCyc, BSize, L1Size, L2Size, L1Assoc,
+			L2Assoc, L1Cyc, L2Cyc, WrAlloc);
 
 	while (getline(file, line)) {
 

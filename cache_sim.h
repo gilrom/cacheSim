@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <iostream>
 
+typedef unsigned uint
+
 
 class Block{
     public:
@@ -43,12 +45,16 @@ class CacheSim{
     uint mem_cyc;
     uint num_of_mem_acc;
     uint total_time;
+    uint L1Cyc;
+    uint L2Cyc;
 
     Cache l1;
     Cache l2;
 
     public:
-        CacheSim();
+        CacheSim(uint MemCyc, uint BSize, uint L1Size, uint L2Size, uint L1Assoc,
+			uint L2Assoc, uint L1Cyc, uint L2Cyc, uint WrAlloc)
+);
         ~CacheSim();
         void read(uint32_t addr);
         void write(uint32_t addr);
