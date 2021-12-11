@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <stdint.h>
 #include "cache_sim.h"
 
 using std::FILE;
