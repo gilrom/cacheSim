@@ -115,7 +115,7 @@ bool Cache::writeReq(uint32_t addr, bool realReq = false)
 		{
 			if(write_allocate)
 				table[set][i].dirty = true;	
-			//update lru
+			updateLru(i,set);
 			return true;
 		}
 	}
@@ -134,7 +134,7 @@ bool Cache::readReq(uint32_t addr)
 	{
 		if(table[set][i].tag == tag)
 		{
-			//update lru
+			updateLru(i,set);
 			return true;
 		}
 	}
