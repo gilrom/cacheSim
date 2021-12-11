@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include "cache_sim.h"
 
 using std::FILE;
 using std::string;
@@ -12,6 +13,129 @@ using std::endl;
 using std::cerr;
 using std::ifstream;
 using std::stringstream;
+
+
+/*Implementation for classes*/
+
+Cache::Cache(uint size, uint associativ, uint cycle, uint block_size) : size(size),
+ num_of_calls(0), num_of_miss(0), assoc(associativ), acc_cyc(cycle), table(nullptr)
+{
+	
+	num_of_set_bits = size - (block_size + assoc);
+	num_of_tag_bits = 32 -2 -block_size -num_of_set_bits;
+
+	uint num_of_Lines = 1 << num_of_set_bits;
+	uint num_of_Ways = 1 << assoc;
+
+	table = new Block*[num_of_Lines]; 
+	for(int i = 0 ; i < num_of_Lines ; i++)
+	{
+		table[i] = new Block[num_of_Ways];
+		for(int j = 0 ; j < num_of_Ways ; j++)
+		{
+			table[i][j].dirty = false;
+			table[i][j].valid = false;
+			table[i][j].lru_key = j;
+			table[i][j].addr = 0;
+		}
+	}
+}
+
+Cache::~Cache(){
+	for (int i = 0; i < (1 << num_of_set_bits); i++)
+	{
+		delete[] table[i];
+	}
+	delete[] table;
+}
+
+void Cache::parseSetAndTag(uint addr, uint* tag, uint* set){
+	*tag = addr >> (32 - num_of_tag_bits);
+	*set = (addr << num_of_tag_bits) >> (32 - num_of_set_bits);
+}
+
+void Cache::updateLru(uint index_of_adrr, uint set){
+	uint x = table[set][index_of_adrr].lru_key;
+	table[set][index_of_adrr].lru_key = (1 << assoc)-1;
+	for (int i = 0; i < (1 << assoc); i++)
+	{
+		if(i != index_of_adrr && table[set][i].lru_key > x)
+			table[set][i].lru_key--;
+	}
+}
+
+void Cache::invalidate (uint32_t addr)
+{
+
+}
+
+bool Cache::snoop(uint32_t addr)
+{
+	uint tag, set;
+	parseSetAndTag(addr, &tag, &set);
+
+	for (int i = 0; i < (1 << assoc); i++)
+	{
+		if(table[set][i].adrr == tag)
+			table[set][i].lru_key--;
+	}
+
+}
+
+
+
+void CacheSim::read(uint32_t addr){
+	if(!l1.readReq(addr)){
+		if(!l2.readReq(addr)){
+			num_of_mem_acc++;
+			Block& b = l2.selectVictim(addr);
+			if(!b.valid){
+				l2.fillData(addr);
+			}
+			else{
+				bool dirty_in_l1 = l1.snoop(b.addr);
+				if(dirty_in_l1){
+					l2.writeReq(b.addr);
+				}
+				l1.invalidate(b.addr);//snoop will do it - please delete this line
+				if(b.dirty){
+					//write back to memory
+				}
+				l2.invalidate(b.addr);
+				l2.fillData(addr);
+			}
+			Block& b = l1.selectVictim(addr);
+			if(!b.valid){
+				l1.fillData(addr);
+			}
+			else{
+				if(b.dirty){
+					l2.writeReq(b.addr);
+				}
+				l1.invalidate(b.addr);
+				l1.fillData(addr);
+			}
+		}
+		else{
+			Block& b = l1.selectVictim(addr);
+			if(!b.valid){
+				l1.fillData(addr);
+			}
+			else{
+				if(b.dirty){
+					l2.writeReq(b.addr);
+				}
+				l1.invalidate(b.addr);
+				l1.fillData(addr);
+			}
+		}
+	}
+}
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 int main(int argc, char **argv) {
 
@@ -92,6 +216,8 @@ int main(int argc, char **argv) {
 	double L1MissRate;
 	double L2MissRate;
 	double avgAccTime;
+
+	
 
 	printf("L1miss=%.03f ", L1MissRate);
 	printf("L2miss=%.03f ", L2MissRate);
