@@ -1,9 +1,8 @@
-
 #include <cstdlib>
 #include <stdint.h>
 #include <iostream>
 
-typedef unsigned uint
+typedef unsigned int uint
 
 
 class Block{
