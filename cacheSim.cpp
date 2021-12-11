@@ -57,7 +57,7 @@ void Cache::parseSetAndTag(uint addr, uint* tag, uint* set){
 
 void Cache::updateLru(uint index_of_adrr, uint set){
 	uint x = table[set][index_of_adrr].lru_key;
-	table[set][index_of_adrr].lru_key = (1 << assoc)-1;
+	table[set][index_of_adrr].lru_key = (1 << assoc) - 1;
 	for (int i = 0; i < (1 << assoc); i++)
 	{
 		if(i != index_of_adrr && table[set][i].lru_key > x)
@@ -72,6 +72,10 @@ void Cache::invalidate (uint32_t addr)
 
 	for (int i = 0; i < (1 << assoc); i++)
 	{
+		if(!table[set][i].valid)
+		{
+			continue;
+		}
 		if(table[set][i].tag == tag)
 		{
 			table[set][i].valid = false;	
@@ -88,6 +92,10 @@ bool Cache::snoop(uint32_t addr)
 
 	for (int i = 0; i < (1 << assoc); i++)
 	{
+		if(!table[set][i].valid)
+		{
+			continue;
+		}
 		if(table[set][i].tag == tag)
 		{
 			table[set][i].valid = false;	
@@ -106,6 +114,10 @@ bool Cache::writeReq(uint32_t addr, bool realReq = false)
 
 	for (int i = 0; i < (1 << assoc); i++)
 	{
+		if(!table[set][i].valid)
+		{
+			continue;
+		}
 		if(table[set][i].tag == tag)
 		{
 			table[set][i].dirty = true;	
@@ -126,6 +138,10 @@ bool Cache::readReq(uint32_t addr)
 
 	for (int i = 0; i < (1 << assoc); i++)
 	{
+		if(!table[set][i].valid)
+		{
+			continue;
+		}
 		if(table[set][i].tag == tag)
 		{
 			updateLru(i,set);
