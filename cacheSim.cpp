@@ -76,10 +76,14 @@ bool Cache::snoop(uint32_t addr)
 
 	for (int i = 0; i < (1 << assoc); i++)
 	{
-		if(table[set][i].adrr == tag)
-			table[set][i].lru_key--;
-	}
+		if(table[set][i].tag == tag)
+		{
+			table[set][i].valid = false;	
+			return table[set][i].dirty;
 
+		}
+	}
+	return false;
 }
 
 
