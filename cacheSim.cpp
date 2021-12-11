@@ -1,6 +1,7 @@
 /* 046267 Computer Architecture - Winter 20/21 - HW #2 */
 
 #include <cstdlib>
+#include <stdlib>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -37,6 +38,7 @@ Cache::Cache(uint size, uint associativ, uint cycle, uint block_size) : size(siz
 			table[i][j].dirty = false;
 			table[i][j].valid = false;
 			table[i][j].lru_key = j;
+			table[i][j].way = j;
 			table[i][j].addr = 0;
 		}
 	}
@@ -162,7 +164,16 @@ Block& Cache::selectVictim(uint32_t addr)
 	return table[set][index];
 }
 
-
+void Cache::fillData(uint32_t addr, int way)
+{
+	uint tag, set;
+	parseSetAndTag(addr, &tag, &set);
+	table[set][way].tag = tag;
+	table[set][way].valid = true;
+	table[set][way].dirty = false;
+	table[set][way].addr = addr;
+	updateLru(addr, set);
+}
 
 void CacheSim::read(uint32_t addr){
 	if(!l1.readReq(addr)){
