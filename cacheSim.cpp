@@ -59,7 +59,7 @@ void Cache::parseSetAndTag(uint addr, uint* tag, uint* set){
 
 void Cache::updateLru(uint index_of_adrr, uint set){
 	uint x = table[set][index_of_adrr].lru_key;
-	table[set][index_of_adrr].lru_key = (1 << assoc)-1;
+	table[set][index_of_adrr].lru_key = (1 << assoc) - 1;
 	for (int i = 0; i < (1 << assoc); i++)
 	{
 		if(i != index_of_adrr && table[set][i].lru_key > x)
@@ -74,6 +74,10 @@ void Cache::invalidate (uint32_t addr)
 
 	for (int i = 0; i < (1 << assoc); i++)
 	{
+		if(!table[set][i].valid)
+		{
+			continue;
+		}
 		if(table[set][i].tag == tag)
 		{
 			table[set][i].valid = false;	
@@ -90,6 +94,10 @@ bool Cache::snoop(uint32_t addr)
 
 	for (int i = 0; i < (1 << assoc); i++)
 	{
+		if(!table[set][i].valid)
+		{
+			continue;
+		}
 		if(table[set][i].tag == tag)
 		{
 			table[set][i].valid = false;	
@@ -108,6 +116,10 @@ bool Cache::writeReq(uint32_t addr, bool realReq = false)
 
 	for (int i = 0; i < (1 << assoc); i++)
 	{
+		if(!table[set][i].valid)
+		{
+			continue;
+		}
 		if(table[set][i].tag == tag)
 		{
 			table[set][i].dirty = true;	
@@ -128,6 +140,10 @@ bool Cache::readReq(uint32_t addr)
 
 	for (int i = 0; i < (1 << assoc); i++)
 	{
+		if(!table[set][i].valid)
+		{
+			continue;
+		}
 		if(table[set][i].tag == tag)
 		{
 			updateLru(i,set);
@@ -181,7 +197,7 @@ void CacheSim::read(uint32_t addr){
 			num_of_mem_acc++;
 			Block& b = l2.selectVictim(addr);
 			if(!b.valid){
-				l2.fillData(addr);
+				l2.fillData(addr, b.way);
 			}
 			else{
 				bool dirty_in_l1 = l1.snoop(b.addr);
@@ -192,31 +208,31 @@ void CacheSim::read(uint32_t addr){
 					//write back to memory
 				}
 				l2.invalidate(b.addr);
-				l2.fillData(addr);
+				l2.fillData(addr, b.way);
 			}
 			Block& b = l1.selectVictim(addr);
 			if(!b.valid){
-				l1.fillData(addr);
+				l1.fillData(addr, b.way);
 			}
 			else{
 				if(b.dirty){
 					l2.writeReq(b.addr);
 				}
 				l1.invalidate(b.addr);
-				l1.fillData(addr);
+				l1.fillData(addr, b.way);
 			}
 		}
 		else{
 			Block& b = l1.selectVictim(addr);
 			if(!b.valid){
-				l1.fillData(addr);
+				l1.fillData(addr, b.way);
 			}
 			else{
 				if(b.dirty){
 					l2.writeReq(b.addr);
 				}
 				l1.invalidate(b.addr);
-				l1.fillData(addr);
+				l1.fillData(addr, b.way);
 			}
 		}
 	}
