@@ -36,6 +36,8 @@ class Cache{
     bool readReq(uint32_t addr); //if founded it update the LRU key //it updates the num_of_calls and num_of_miss
     Block& selectVictim(uint32_t addr);//this will returns null if there is a free space
     void fillData(uint32_t addr, int ind);
+    double getMissRate();
+    uint getNumOfAcc();
 };
 
 class CacheSim{
@@ -43,7 +45,6 @@ class CacheSim{
     uint block_size;
     uint mem_cyc;
     uint num_of_mem_acc;
-    uint total_time;
     uint L1Cyc;
     uint L2Cyc;
 
@@ -55,6 +56,9 @@ class CacheSim{
 			uint L2Assoc, uint L1Cyc, uint L2Cyc, uint WrAlloc)
 );
         ~CacheSim();
+        double getL1MissRate();
+        double getL1MissRate();
+        double avgAccTime();
         void read(uint32_t addr);
         void write(uint32_t addr);
 };
