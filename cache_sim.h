@@ -49,6 +49,8 @@ class CacheSim{
     Cache l2;
 
     public:
+        CacheSim();
+        ~CacheSim();
         void read(uint32_t addr);
         void write(uint32_t addr);
 };
