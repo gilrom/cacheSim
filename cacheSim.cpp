@@ -66,7 +66,18 @@ void Cache::updateLru(uint index_of_adrr, uint set){
 
 void Cache::invalidate (uint32_t addr)
 {
+	uint tag, set;
+	parseSetAndTag(addr, &tag, &set);
 
+	for (int i = 0; i < (1 << assoc); i++)
+	{
+		if(table[set][i].tag == tag)
+		{
+			table[set][i].valid = false;	
+			return;
+		}
+	}
+	
 }
 
 bool Cache::snoop(uint32_t addr)
@@ -76,10 +87,74 @@ bool Cache::snoop(uint32_t addr)
 
 	for (int i = 0; i < (1 << assoc); i++)
 	{
-		if(table[set][i].adrr == tag)
-			table[set][i].lru_key--;
-	}
+		if(table[set][i].tag == tag)
+		{
+			table[set][i].valid = false;	
+			return table[set][i].dirty;
 
+		}
+	}
+	return false;
+}
+
+
+bool Cache::writeReq(uint32_t addr, bool realReq = false)
+{
+	if(!readReq)
+	{
+		return false;
+	}
+	num_of_calls++;
+
+	uint tag, set;
+	parseSetAndTag(addr, &tag, &set);
+
+	for (int i = 0; i < (1 << assoc); i++)
+	{
+		if(table[set][i].tag == tag)
+		{
+			if(write_allocate)
+				table[set][i].dirty = true;	
+			updateLru(i,set);
+			return true;
+		}
+	}
+	num_of_miss++;
+	return false;
+}
+
+bool Cache::readReq(uint32_t addr)
+{
+	num_of_calls++;
+
+	uint tag, set;
+	parseSetAndTag(addr, &tag, &set);
+
+	for (int i = 0; i < (1 << assoc); i++)
+	{
+		if(table[set][i].tag == tag)
+		{
+			updateLru(i,set);
+			return true;
+		}
+	}
+	num_of_miss++;
+	return false;
+}
+
+Block& Cache::selectVictim(uint32_t addr)
+{
+	uint tag, set;
+	parseSetAndTag(addr, &tag, &set);
+	uint min_lru_key = 1 << assoc;
+
+	for (int i = 0; i < (1 << assoc); i++)
+	{
+		if(table[set][i].tag == tag)
+		{
+			return true;
+		}
+	}
 }
 
 
