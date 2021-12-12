@@ -26,10 +26,10 @@ Cache::Cache(uint size, uint associativ, uint block_size) : size(size),
 
 	uint num_of_Lines = 1 << num_of_set_bits;
 	uint num_of_Ways = 1 << assoc;
-
 	table = new Block*[num_of_Lines]; 
 	for(int i = 0 ; i < num_of_Lines ; i++)
 	{
+		//std::cout<<i<<endl;
 		table[i] = new Block[num_of_Ways];
 		for(int j = 0 ; j < num_of_Ways ; j++)
 		{
@@ -43,14 +43,17 @@ Cache::Cache(uint size, uint associativ, uint block_size) : size(size),
 }
 
 Cache::~Cache(){
-	std::cout<<"is it here?"<<endl;
+	//std::cout<<"is it here?"<<endl;
 	uint num_of_Lines = 1 << num_of_set_bits;
+
 	for(int i = 0 ; i < num_of_Lines ; i++)
 	{
+		//std::cout<<"yes1 i = "<<i<<endl;
 		delete[] table[i];
+		//std::cout<<"yes2"<<endl;
 	}
 	delete[] table;
-	std::cout<<"its not here"<<endl;
+	//std::cout<<"its not here"<<endl;
 }
 
 void Cache::parseSetAndTag(uint32_t addr, uint* tag, uint* set){
@@ -67,8 +70,8 @@ void Cache::parseSetAndTag(uint32_t addr, uint* tag, uint* set){
 }
 
 void Cache::updateLru(uint index_of_adrr, uint set){
-	uint x = table[set][index_of_adrr].lru_key;
-	table[set][index_of_adrr].lru_key = (1 << assoc) - 1;
+	int x = table[set][index_of_adrr].lru_key;
+	table[set][index_of_adrr].lru_key = (int)((1 << assoc) - 1);
 	for (int i = 0; i < (1 << assoc); i++)
 	{
 		if(i != index_of_adrr && table[set][i].lru_key > x)
@@ -132,7 +135,7 @@ bool Cache::writeReq(uint32_t addr, bool realReq)
 		if(table[set][i].tag == tag)
 		{
 			table[set][i].dirty = true;	
-			if (realReq) updateLru(i,set);
+			updateLru(i,set);
 			return true;
 		}
 	}
@@ -167,7 +170,7 @@ Block& Cache::selectVictim(uint32_t addr)
 {
 	uint tag, set;
 	parseSetAndTag(addr, &tag, &set);
-	uint min_lru_key = 1 << assoc;
+	int min_lru_key = 1 << assoc;
 	int index = 0;
 
 	for (int i = 0; i < (1 << assoc); i++)
@@ -192,6 +195,7 @@ void Cache::fillData(uint32_t addr, uint way)
 {
 	uint tag, set;
 	parseSetAndTag(addr, &tag, &set);
+
 
 	Block to_insert;
 	to_insert.addr = addr;
@@ -294,7 +298,61 @@ void CacheSim::read(uint32_t addr){
 	}
 }
 
-
+void CacheSim::write(uint32_t addr){
+	if(!l1.readReq(addr)){
+		if(!l2.readReq(addr)){
+			num_of_mem_acc++;
+			if(alloc)
+			{
+				Block& victim = l2.selectVictim(addr);
+				if(!victim.valid){
+					l2.fillData(addr, victim.way);
+				}
+				else{
+					bool dirty_in_l1 = l1.snoop(victim.addr);
+					if(dirty_in_l1){
+						l2.writeReq(victim.addr);
+					}
+					if(victim.dirty){
+						//write back to memory
+					}
+					l2.invalidate(victim.addr);
+					l2.fillData(addr, victim.way);
+				}
+				victim = l1.selectVictim(addr);
+				if(!victim.valid){
+					l1.fillData(addr, victim.way);
+				}
+				else{
+					if(victim.dirty){
+						l2.writeReq(victim.addr);
+					}
+					l1.invalidate(victim.addr);
+					l1.fillData(addr, victim.way);
+				}
+				l1.writeReq(addr);
+			}
+		}
+		else
+		{
+			if(alloc)
+			{
+				Block& victim = l1.selectVictim(addr);
+				if(!victim.valid){
+					l1.fillData(addr, victim.way);
+				}
+				else{
+					if(victim.dirty){
+						l2.writeReq(victim.addr);
+					}
+					l1.invalidate(victim.addr);
+					l1.fillData(addr, victim.way);
+				}
+				l1.writeReq(addr);
+			}
+		}
+	}
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -379,6 +437,10 @@ int main(int argc, char **argv) {
 		if(operation == 'r')
 		{
 			simulator.read(num);
+		}
+		if(operation == 'w')
+		{
+			simulator.write(num);
 		}
 
 	}

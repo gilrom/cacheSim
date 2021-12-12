@@ -8,10 +8,12 @@ typedef unsigned int uint;
 class Block{
     public:
         bool valid, dirty;
-        uint lru_key;
+        int lru_key;
         uint32_t addr; //search will be by tag bits only
         uint32_t tag; //so we must saves tose tags add cot if needed
         uint way; //block way int the set (index)
+        Block() : valid(false), dirty(false), lru_key(0), addr(0), tag(0), way(0) {}
+        
 };
 
 class Cache{
