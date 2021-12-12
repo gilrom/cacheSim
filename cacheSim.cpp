@@ -43,20 +43,25 @@ Cache::Cache(uint size, uint associativ, uint block_size) : size(size),
 }
 
 Cache::~Cache(){
-	for (int i = 0; i < (1 << num_of_set_bits); i++)
+	std::cout<<"is it here?"<<endl;
+	uint num_of_Lines = 1 << num_of_set_bits;
+	for(int i = 0 ; i < num_of_Lines ; i++)
 	{
 		delete[] table[i];
 	}
 	delete[] table;
+	std::cout<<"its not here"<<endl;
 }
 
 void Cache::parseSetAndTag(uint32_t addr, uint* tag, uint* set){
 
 	uint64_t tag64, set64;
+	uint64_t ThirtyTwoBitsMask = 0xFFFFFFFF;
 	tag64 = addr >> (32 - num_of_tag_bits);
 	*tag = tag64;
 
 	set64 = addr << num_of_tag_bits;
+	set64 = set64 & ThirtyTwoBitsMask;
 	set64 = set64 >> (32 - num_of_set_bits);
 	*set = set64;
 }
@@ -220,7 +225,8 @@ CacheSim::CacheSim(uint MemCyc, uint BSize, uint L1Size, uint L2Size, uint L1Ass
 
 	alloc(WrAlloc), block_size(BSize), mem_cyc(MemCyc), num_of_mem_acc(0), 
 	L1Cyc(L1Cyc), L2Cyc(L2Cyc),
-	l1(L1Size, L1Assoc, BSize),	l2(L2Size, L2Assoc, BSize)
+	l1(L1Size, L1Assoc, BSize),	
+	l2(L2Size, L2Assoc, BSize)
 {}
 
 double CacheSim::getL1MissRate()
