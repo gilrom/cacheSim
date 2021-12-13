@@ -85,10 +85,20 @@ void Cache::updateLru(uint way, uint set)
 			memory[set][cu_way]->setLruKey(old_lru_key - 1);
 		}
 	}
+	/* lru testing:
+	std::cout<<"printing the lru keys: "<<endl;
+	std::cout<<"just changed: "<<way<<endl;
+	for (int cu_way = 0; cu_way < num_of_Ways; cu_way++)
+	{
+		std::cout<<memory[set][cu_way]->getLruKey()<<endl;
+	}
+	*/
+
 }
 
 void Cache::invalidate (uint32_t addr)
 {
+	//std::cout<<"invalidate is ";
 	uint tag, set;
 	parseSetAndTag(addr, &tag, &set);
 
@@ -102,6 +112,7 @@ void Cache::invalidate (uint32_t addr)
 		}
 		else if(memory[set][way]->tag == tag)
 		{
+			//std::cout<<"RIGHT!"<<endl;
 			memory[set][way]->valid = false;	
 			return;
 		}
@@ -148,7 +159,7 @@ bool Cache::writeReq(uint32_t addr, bool realReq)
 		}
 		else if(memory[set][way]->tag == tag)
 		{
-			memory[set][way]->dirty = true;	
+			memory[set][way]->dirty = true;
 			updateLru(way,set);
 			return true;
 		}
@@ -226,6 +237,15 @@ void Cache::fillData(uint32_t addr, uint way)
 	to_insert->way = way;
 
 	//std::cout<<"where is it??"<<endl;
+
+	if(memory[set][way]->valid)
+	{
+		std::cout<<"somthing is wrong"<<endl;
+	}
+	else
+	{
+		//std::cout<<"you are GOOD :)"<<endl;
+	}
 	*memory[set][way] = *to_insert;
 	//std::cout<<"here"<<endl;
 	updateLru(way, set);
@@ -239,6 +259,29 @@ double Cache::getMissRate()
 
 uint Cache::getNumOfAcc(){
 	return num_of_calls;
+}
+
+void Cache::printCache()
+{
+	uint num_of_set = 1 << num_of_set_bits;
+	uint num_of_Ways = 1 << assoc;
+
+	for(int set = 0 ; set < num_of_set ; set++)
+	{
+		std::cout<<"set "<<set<<":";
+		for (int way = 0 ; way < num_of_Ways ; way++)
+		{
+			if(memory[set][way]->valid)
+			{
+				std::cout<<"way "<<way<<": tag-"<<memory[set][way]->tag;
+				if (memory[set][way]->dirty)
+				{
+					std::cout<<"dirty";
+				}
+			}
+		}
+		std::cout<<endl;
+	}
 }
 
 CacheSim::CacheSim(uint MemCyc, uint BSize, uint L1Size, uint L2Size, uint L1Assoc,
@@ -269,11 +312,16 @@ double CacheSim::avgAccTime()
 }
 
 void CacheSim::read(uint32_t addr){
+	std::cout<<"memory picture:"<<endl;
+	std::cout<<"L1:"<<endl;
+	l1.printCache();
+	std::cout<<"L2:"<<endl;
+	l2.printCache();
 	if(!l1.readReq(addr)){
 		if(!l2.readReq(addr)){
 			num_of_mem_acc++;
 			Block* b = l2.selectVictim(addr);
-			if(!b->valid){
+			if(!b->valid){ //cache is not full
 				l2.fillData(addr, b->way);
 			}
 			else{

@@ -47,6 +47,7 @@ class Cache{
     void fillData(uint32_t addr, uint ind);
     double getMissRate();
     uint getNumOfAcc();
+    void printCache();
 };
 
 class CacheSim{
