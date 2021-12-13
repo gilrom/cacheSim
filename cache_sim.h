@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <stdint.h>
 #include <iostream>
+#include <vector>
 
 typedef unsigned int uint;
 
@@ -21,7 +22,8 @@ class Cache{
     uint num_of_calls;
     uint num_of_miss;
     uint assoc;
-    Block** table;
+    std::vector<Block> * memory;
+    //Block** table;
     uint num_of_tag_bits;
     uint num_of_set_bits;
 
