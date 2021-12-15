@@ -18,48 +18,49 @@ using std::stringstream;
 /*Implementation for classes*/
 
 Cache::Cache(uint size, uint associativ, uint block_size) : size(size),
- num_of_calls(0), num_of_miss(0), assoc(associativ), table(NULL)
+ num_of_calls(0), num_of_miss(0), assoc(associativ)
 {
 	
 	num_of_set_bits = size - (block_size + assoc);
 	num_of_tag_bits = 32 -2 -block_size -num_of_set_bits;
 
-	uint num_of_Lines = 1 << num_of_set_bits;
+	uint num_of_set = 1 << num_of_set_bits;
 	uint num_of_Ways = 1 << assoc;
-	table = new Block*[num_of_Lines]; 
-	for(int i = 0 ; i < num_of_Lines ; i++)
+
+	memory = new std::vector<Block*>[num_of_set];
+
+	for(int set = 0 ; set < num_of_set ; set++)
 	{
-		//std::cout<<i<<endl;
-		table[i] = new Block[num_of_Ways];
-		for(int j = 0 ; j < num_of_Ways ; j++)
+		memory[set] = std::vector<Block*>(num_of_Ways);
+		for (int way = 0 ; way < num_of_Ways ; way++)
 		{
-			table[i][j].dirty = false;
-			table[i][j].valid = false;
-			table[i][j].lru_key = j;
-			table[i][j].way = j;
-			table[i][j].addr = 0;
+			memory[set][way] = new Block;
+			memory[set][way]->setLruKey(way);
+			memory[set][way]->way = way;
 		}
 	}
 }
 
-Cache::~Cache(){
-	//std::cout<<"is it here?"<<endl;
-	uint num_of_Lines = 1 << num_of_set_bits;
-
-	for(int i = 0 ; i < num_of_Lines ; i++)
+Cache::~Cache()
+{
+	uint num_of_set = 1 << num_of_set_bits;
+	uint num_of_Ways = 1 << assoc;
+	for(int set = 0 ; set < num_of_set ; set++)
 	{
-		//std::cout<<"yes1 i = "<<i<<endl;
-		delete[] table[i];
-		//std::cout<<"yes2"<<endl;
+		for (int way = 0 ; way < num_of_Ways ; way++)
+		{
+			delete memory[set][way];
+		}
 	}
-	delete[] table;
-	//std::cout<<"its not here"<<endl;
+
+	delete[] memory;
 }
 
 void Cache::parseSetAndTag(uint32_t addr, uint* tag, uint* set){
 
 	uint64_t tag64, set64;
 	uint64_t ThirtyTwoBitsMask = 0xFFFFFFFF;
+
 	tag64 = addr >> (32 - num_of_tag_bits);
 	*tag = tag64;
 
@@ -69,34 +70,53 @@ void Cache::parseSetAndTag(uint32_t addr, uint* tag, uint* set){
 	*set = set64;
 }
 
-void Cache::updateLru(uint index_of_adrr, uint set){
-	int x = table[set][index_of_adrr].lru_key;
-	table[set][index_of_adrr].lru_key = (int)((1 << assoc) - 1);
-	for (int i = 0; i < (1 << assoc); i++)
+void Cache::updateLru(uint way, uint set)
+{
+	int num_of_Ways = 1 << assoc;
+
+	int x = memory[set][way]->getLruKey();
+	memory[set][way]->setLruKey(num_of_Ways - 1);
+
+	for (int cu_way = 0; cu_way < num_of_Ways; cu_way++)
 	{
-		if(i != index_of_adrr && table[set][i].lru_key > x)
-			table[set][i].lru_key--;
+		if(cu_way != way && memory[set][cu_way]->getLruKey() > x)
+		{
+			int old_lru_key = memory[set][cu_way]->getLruKey();
+			memory[set][cu_way]->setLruKey(old_lru_key - 1);
+		}
 	}
+	/* lru testing:
+	std::cout<<"printing the lru keys: "<<endl;
+	std::cout<<"just changed: "<<way<<endl;
+	for (int cu_way = 0; cu_way < num_of_Ways; cu_way++)
+	{
+		std::cout<<memory[set][cu_way]->getLruKey()<<endl;
+	}
+	*/
+
 }
 
 void Cache::invalidate (uint32_t addr)
 {
+	//std::cout<<"invalidate is ";
 	uint tag, set;
 	parseSetAndTag(addr, &tag, &set);
 
-	for (int i = 0; i < (1 << assoc); i++)
+	int num_of_Ways = 1 << assoc;
+
+	for (int way = 0; way < num_of_Ways ; way++)
 	{
-		if(!table[set][i].valid)
+		if(!(memory[set][way]->valid))
 		{
 			continue;
 		}
-		if(table[set][i].tag == tag)
+		else if(memory[set][way]->tag == tag)
 		{
-			table[set][i].valid = false;	
+			//std::cout<<"RIGHT!"<<endl;
+			memory[set][way]->valid = false;	
 			return;
 		}
 	}
-	
 }
 
 bool Cache::snoop(uint32_t addr)
@@ -104,18 +124,21 @@ bool Cache::snoop(uint32_t addr)
 	uint tag, set;
 	parseSetAndTag(addr, &tag, &set);
 
-	for (int i = 0; i < (1 << assoc); i++)
+	int num_of_Ways = 1 << assoc;
+
+	for (int way = 0; way < num_of_Ways ; way++)
 	{
-		if(!table[set][i].valid)
+		if(!(memory[set][way]->valid))
 		{
 			continue;
 		}
-		if(table[set][i].tag == tag)
+		else if(memory[set][way]->tag == tag)
 		{
-			table[set][i].valid = false;	
-			return table[set][i].dirty;
+			memory[set][way]->valid = false;	
+			return memory[set][way]->dirty;
 		}
 	}
+
 	return false;
 }
 
@@ -125,17 +148,19 @@ bool Cache::writeReq(uint32_t addr, bool realReq)
 
 	uint tag, set;
 	parseSetAndTag(addr, &tag, &set);
+	
+	int num_of_Ways = 1 << assoc;
 
-	for (int i = 0; i < (1 << assoc); i++)
+	for (int way = 0; way < num_of_Ways ; way++)
 	{
-		if(!table[set][i].valid)
+		if(!(memory[set][way]->valid))
 		{
 			continue;
 		}
-		if(table[set][i].tag == tag)
+		else if(memory[set][way]->tag == tag)
 		{
-			table[set][i].dirty = true;	
-			updateLru(i,set);
+			memory[set][way]->dirty = true;
+			updateLru(way,set);
 			return true;
 		}
 	}
@@ -148,16 +173,18 @@ bool Cache::readReq(uint32_t addr)
 	num_of_calls++;
 	uint tag, set;
 	parseSetAndTag(addr, &tag, &set);
-	for (int i = 0; i < (1 << assoc); i++)
-	{
+	
+	int num_of_Ways = 1 << assoc;
 
-		if(!table[set][i].valid)
+	for (int way = 0; way < num_of_Ways ; way++)
+	{
+		if(!(memory[set][way]->valid))
 		{
 			continue;
 		}
-		if(table[set][i].tag == tag)
+		else if(memory[set][way]->tag == tag)
 		{
-			updateLru(i,set);
+			updateLru(way,set);
 			return true;
 		}
 	}
@@ -166,30 +193,34 @@ bool Cache::readReq(uint32_t addr)
 }
 
 //on work
-Block& Cache::selectVictim(uint32_t addr)
+Block* Cache::selectVictim(uint32_t addr)
 {
 	uint tag, set;
 	parseSetAndTag(addr, &tag, &set);
-	int min_lru_key = 1 << assoc;
-	int index = 0;
 
-	for (int i = 0; i < (1 << assoc); i++)
+	int num_of_Ways = 1 << assoc;
+
+	int min_lru_key = num_of_Ways;
+	int index = 0;
+	
+	for (int way = 0; way < num_of_Ways ; way++)
 	{
-		if(table[set][i].valid)
+		if(memory[set][way]->valid)
 		{
-			if(min_lru_key > table[set][i].lru_key)
+			if(min_lru_key > memory[set][way]->getLruKey())
 			{
-				min_lru_key = table[set][i].lru_key;
-				index = i;
+				min_lru_key = memory[set][way]->getLruKey();
+				index = way;
 			}
 		}
 		else
 		{
-			return table[set][i];
+			return memory[set][way];
 		}
 	}
-	return table[set][index];
+	return memory[set][index];
 }
+
 
 void Cache::fillData(uint32_t addr, uint way)
 {
@@ -197,22 +228,28 @@ void Cache::fillData(uint32_t addr, uint way)
 	parseSetAndTag(addr, &tag, &set);
 
 
-	Block to_insert;
-	to_insert.addr = addr;
-	to_insert.dirty = false ;
-	to_insert.lru_key = table[set][way].lru_key;
-	to_insert.tag = tag;
-	to_insert.valid = true;
-	to_insert.way = way;
+	Block* to_insert = new Block;
+	to_insert->addr = addr;
+	int old_lru_key = memory[set][way]->getLruKey();
+	to_insert->setLruKey(old_lru_key);
+	to_insert->tag = tag;
+	to_insert->valid = true;
+	to_insert->way = way;
 
-	table[set][way] = to_insert;
+	//std::cout<<"where is it??"<<endl;
 
-	/*
-	table[set][way].tag = ;
-	table[set][way].valid = ;
-	table[set][way].dirty = ;
-	table[set][way].addr = ; */
+	if(memory[set][way]->valid)
+	{
+		std::cout<<"somthing is wrong"<<endl;
+	}
+	else
+	{
+		//std::cout<<"you are GOOD :)"<<endl;
+	}
+	*memory[set][way] = *to_insert;
+	//std::cout<<"here"<<endl;
 	updateLru(way, set);
+	delete to_insert;
 }
 
 double Cache::getMissRate()
@@ -222,6 +259,29 @@ double Cache::getMissRate()
 
 uint Cache::getNumOfAcc(){
 	return num_of_calls;
+}
+
+void Cache::printCache()
+{
+	uint num_of_set = 1 << num_of_set_bits;
+	uint num_of_Ways = 1 << assoc;
+
+	for(int set = 0 ; set < num_of_set ; set++)
+	{
+		std::cout<<"set "<<set<<":";
+		for (int way = 0 ; way < num_of_Ways ; way++)
+		{
+			if(memory[set][way]->valid)
+			{
+				std::cout<<"way "<<way<<": tag-"<<memory[set][way]->tag;
+				if (memory[set][way]->dirty)
+				{
+					std::cout<<"dirty";
+				}
+			}
+		}
+		std::cout<<endl;
+	}
 }
 
 CacheSim::CacheSim(uint MemCyc, uint BSize, uint L1Size, uint L2Size, uint L1Assoc,
@@ -252,47 +312,52 @@ double CacheSim::avgAccTime()
 }
 
 void CacheSim::read(uint32_t addr){
+	std::cout<<"memory picture:"<<endl;
+	std::cout<<"L1:"<<endl;
+	l1.printCache();
+	std::cout<<"L2:"<<endl;
+	l2.printCache();
 	if(!l1.readReq(addr)){
 		if(!l2.readReq(addr)){
 			num_of_mem_acc++;
-			Block& b = l2.selectVictim(addr);
-			if(!b.valid){
-				l2.fillData(addr, b.way);
+			Block* b = l2.selectVictim(addr);
+			if(!b->valid){ //cache is not full
+				l2.fillData(addr, b->way);
 			}
 			else{
-				bool dirty_in_l1 = l1.snoop(b.addr);
+				bool dirty_in_l1 = l1.snoop(b->addr);
 				if(dirty_in_l1){
-					l2.writeReq(b.addr);
+					l2.writeReq(b->addr);
 				}
-				if(b.dirty){
+				if(b->dirty){
 					//write back to memory
 				}
-				l2.invalidate(b.addr);
-				l2.fillData(addr, b.way);
+				l2.invalidate(b->addr);
+				l2.fillData(addr, b->way);
 			}
 			b = l1.selectVictim(addr);
-			if(!b.valid){
-				l1.fillData(addr, b.way);
+			if(!b->valid){
+				l1.fillData(addr, b->way);
 			}
 			else{
-				if(b.dirty){
-					l2.writeReq(b.addr);
+				if(b->dirty){
+					l2.writeReq(b->addr);
 				}
-				l1.invalidate(b.addr);
-				l1.fillData(addr, b.way);
+				l1.invalidate(b->addr);
+				l1.fillData(addr, b->way);
 			}
 		}
 		else{
-			Block& b = l1.selectVictim(addr);
-			if(!b.valid){
-				l1.fillData(addr, b.way);
+			Block* b = l1.selectVictim(addr);
+			if(!b->valid){
+				l1.fillData(addr, b->way);
 			}
 			else{
-				if(b.dirty){
-					l2.writeReq(b.addr);
+				if(b->dirty){
+					l2.writeReq(b->addr);
 				}
-				l1.invalidate(b.addr);
-				l1.fillData(addr, b.way);
+				l1.invalidate(b->addr);
+				l1.fillData(addr, b->way);
 			}
 		}
 	}
@@ -304,31 +369,31 @@ void CacheSim::write(uint32_t addr){
 			num_of_mem_acc++;
 			if(alloc)
 			{
-				Block& victim = l2.selectVictim(addr);
-				if(!victim.valid){
-					l2.fillData(addr, victim.way);
+				Block* victim = l2.selectVictim(addr);
+				if(!victim->valid){
+					l2.fillData(addr, victim->way);
 				}
 				else{
-					bool dirty_in_l1 = l1.snoop(victim.addr);
+					bool dirty_in_l1 = l1.snoop(victim->addr);
 					if(dirty_in_l1){
-						l2.writeReq(victim.addr);
+						l2.writeReq(victim->addr);
 					}
-					if(victim.dirty){
+					if(victim->dirty){
 						//write back to memory
 					}
-					l2.invalidate(victim.addr);
-					l2.fillData(addr, victim.way);
+					l2.invalidate(victim->addr);
+					l2.fillData(addr, victim->way);
 				}
 				victim = l1.selectVictim(addr);
-				if(!victim.valid){
-					l1.fillData(addr, victim.way);
+				if(!victim->valid){
+					l1.fillData(addr, victim->way);
 				}
 				else{
-					if(victim.dirty){
-						l2.writeReq(victim.addr);
+					if(victim->dirty){
+						l2.writeReq(victim->addr);
 					}
-					l1.invalidate(victim.addr);
-					l1.fillData(addr, victim.way);
+					l1.invalidate(victim->addr);
+					l1.fillData(addr, victim->way);
 				}
 				l1.writeReq(addr);
 			}
@@ -337,16 +402,16 @@ void CacheSim::write(uint32_t addr){
 		{
 			if(alloc)
 			{
-				Block& victim = l1.selectVictim(addr);
-				if(!victim.valid){
-					l1.fillData(addr, victim.way);
+				Block* victim = l1.selectVictim(addr);
+				if(!victim->valid){
+					l1.fillData(addr, victim->way);
 				}
 				else{
-					if(victim.dirty){
-						l2.writeReq(victim.addr);
+					if(victim->dirty){
+						l2.writeReq(victim->addr);
 					}
-					l1.invalidate(victim.addr);
-					l1.fillData(addr, victim.way);
+					l1.invalidate(victim->addr);
+					l1.fillData(addr, victim->way);
 				}
 				l1.writeReq(addr);
 			}
