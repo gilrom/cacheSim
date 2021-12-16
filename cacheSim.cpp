@@ -59,13 +59,13 @@ Cache::~Cache()
 void Cache::parseSetAndTag(uint32_t addr, uint* tag, uint* set){
 
 	uint64_t tag64, set64;
-	uint64_t ThirtyTwoBitsMask = 0xFFFFFFFF;
+	uint64_t BitsMask_32 = 0xFFFFFFFF;
 
 	tag64 = addr >> (32 - num_of_tag_bits);
 	*tag = tag64;
 
 	set64 = addr << num_of_tag_bits;
-	set64 = set64 & ThirtyTwoBitsMask;
+	set64 = set64 & BitsMask_32;
 	set64 = set64 >> (32 - num_of_set_bits);
 	*set = set64;
 }
@@ -268,19 +268,22 @@ void Cache::printCache()
 
 	for(int set = 0 ; set < num_of_set ; set++)
 	{
-		std::cout<<"set "<<set<<":";
+		std::cout<<"set "<<set<<":" << endl;
 		for (int way = 0 ; way < num_of_Ways ; way++)
 		{
 			if(memory[set][way]->valid)
 			{
-				std::cout<<"way "<<way<<": tag-"<<memory[set][way]->tag;
+				std::cout<<"	way "<<way<<": tag-"<<memory[set][way]->tag;
 				if (memory[set][way]->dirty)
 				{
-					std::cout<<"dirty";
+					std::cout<<" dirty";
 				}
 			}
+			else
+				std::cout<<"	way "<<way<<": invalid";
+			std::cout<<endl;
 		}
-		std::cout<<endl;
+		// std::cout<<endl;
 	}
 }
 
@@ -304,19 +307,12 @@ double CacheSim::getL2MissRate()
 
 double CacheSim::avgAccTime()
 {
-	double total_time = (l1.getNumOfAcc() * L1Cyc) + 
-						(l2.getNumOfAcc() * L2Cyc) + 
-			 			(num_of_mem_acc * mem_cyc);
-	double total_calls = (l1.getNumOfAcc()+l2.getNumOfAcc()+num_of_mem_acc);
-	return total_time / total_calls;
+	// double l1_hit_rate = 1-l1.getMissRate();
+	// double l2_hit_rate = 1-l2.getMissRate();
+	return L1Cyc + (l1.getMissRate() * (L2Cyc + (l2.getMissRate() * mem_cyc)));
 }
 
 void CacheSim::read(uint32_t addr){
-	std::cout<<"memory picture:"<<endl;
-	std::cout<<"L1:"<<endl;
-	l1.printCache();
-	std::cout<<"L2:"<<endl;
-	l2.printCache();
 	if(!l1.readReq(addr)){
 		if(!l2.readReq(addr)){
 			num_of_mem_acc++;
@@ -361,6 +357,16 @@ void CacheSim::read(uint32_t addr){
 			}
 		}
 	}
+	std::cout<<"memory picture:"<<endl;
+	std::cout<<"L1:"<<endl;
+	l1.printCache();
+	std::cout<<"L1: num of calls: "<< l1.num_of_calls<<endl;
+	std::cout<<"L1: num of miss: "<< l1.num_of_miss<<endl;
+	std::cout<<"L2:"<<endl;
+	l2.printCache();
+	std::cout<<"L2: num of calls: "<< l2.num_of_calls<<endl;
+	std::cout<<"L2: num of miss: "<< l2.num_of_miss<<endl;
+	std::cout<<"num of mem acc: "<< num_of_mem_acc<<endl;
 }
 
 void CacheSim::write(uint32_t addr){
@@ -417,6 +423,19 @@ void CacheSim::write(uint32_t addr){
 			}
 		}
 	}
+	else{
+		l1.writeReq(addr);
+	}
+	std::cout<<"memory picture:"<<endl;
+	std::cout<<"L1:"<<endl;
+	l1.printCache();
+	std::cout<<"L1: num of calls: "<< l1.num_of_calls<<endl;
+	std::cout<<"L1: num of miss: "<< l1.num_of_miss<<endl;
+	std::cout<<"L2:"<<endl;
+	l2.printCache();
+	std::cout<<"L2: num of calls: "<< l2.num_of_calls<<endl;
+	std::cout<<"L2: num of miss: "<< l2.num_of_miss<<endl;
+	std::cout<<"num of mem acc: "<< num_of_mem_acc<<endl;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -511,7 +530,7 @@ int main(int argc, char **argv) {
 	}
 
 	double L1MissRate = simulator.getL1MissRate();
-	double L2MissRate = simulator.getL1MissRate();
+	double L2MissRate = simulator.getL2MissRate();
 	double avgAccTime = simulator.avgAccTime();;
 
 	printf("L1miss=%.03f ", L1MissRate);

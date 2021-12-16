@@ -26,8 +26,10 @@ class Block{
 
 class Cache{
     uint size;
-    uint num_of_calls;
-    uint num_of_miss;
+    public:
+        uint num_of_calls;
+        uint num_of_miss;
+    private:
     uint assoc;
     std::vector<Block*> *memory;
     uint num_of_tag_bits;

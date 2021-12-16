@@ -1,0 +1,5 @@
+make cacheSim --dry-run --always-make --keep-going --print-directory
+make: Entering directory '/home/compm/cacheSim'
+g++ -g -o cacheSim cacheSim.cpp cache_sim.h
+make: Leaving directory '/home/compm/cacheSim'
+ 
