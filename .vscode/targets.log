@@ -1,6 +1,4 @@
 make all --print-data-base --no-builtin-variables --no-builtin-rules --question
-make: *** No rule to make target 'all'.  Stop.
- 
 # GNU Make 4.1
 # Built for x86_64-pc-linux-gnu
 # Copyright (C) 1988-2014 Free Software Foundation, Inc.
@@ -8,7 +6,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Thu Dec 16 06:51:46 2021
+# Make data base, printed on Thu Dec 16 09:54:47 2021
 
 # Variables
 
@@ -77,7 +75,7 @@ PWD = /home/compm/cacheSim
 # environment
 QT_QPA_PLATFORMTHEME = appmenu-qt5
 # environment
-VSCODE_IPC_HOOK_CLI = /run/user/1000/vscode-ipc-11a1c660-b1b1-470d-a75e-f7626fd8f1de.sock
+VSCODE_IPC_HOOK_CLI = /run/user/1000/vscode-ipc-baff9de9-7071-4d83-ad01-01146a7897aa.sock
 # automatic
 *D = $(patsubst %/,%,$(dir $*))
 # environment
@@ -175,9 +173,9 @@ VSCODE_EXTHOST_WILL_SEND_SOCKET = true
 
 # Directories
 
-# . (device 2049, inode 718452): 27 files, no impossibilities.
+# . (device 2049, inode 718452): 31 files, no impossibilities.
 
-# 27 files, no impossibilities in 1 directories.
+# 31 files, no impossibilities in 1 directories.
 
 # Implicit Rules
 
@@ -240,12 +238,14 @@ cacheSim.cpp:
 
 # No general ('VPATH' variable) search path.
 
-# strcache buffers: 1 (0) / strings = 34 / storage = 418 B / avg = 12 B
-# current buf: size = 8162 B / used = 418 B / count = 34 / avg = 12 B
+# strcache buffers: 1 (0) / strings = 38 / storage = 480 B / avg = 12 B
+# current buf: size = 8162 B / used = 480 B / count = 38 / avg = 12 B
 
-# strcache performance: lookups = 44 / hit rate = 22%
+# strcache performance: lookups = 48 / hit rate = 20%
 # hash-table stats:
-# Load=34/8192=0%, Rehash=0, Collisions=1/44=2%
-# Finished Make data base on Thu Dec 16 06:51:46 2021
+# Load=38/8192=0%, Rehash=0, Collisions=1/48=2%
+# Finished Make data base on Thu Dec 16 09:54:47 2021
 
+ 
+make: *** No rule to make target 'all'.  Stop.
  

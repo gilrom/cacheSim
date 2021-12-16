@@ -1,1 +1,2 @@
 --mem-cyc 300 --bsize 4 --wr-alloc 0 --l1-size 7 --l1-assoc 0 --l1-cyc 1 --l2-size 14 --l2-assoc 6 --l2-cyc 70
+./cacheSim example5_trace --mem-cyc 300 --bsize 4 --wr-alloc 0 --l1-size 7 --l1-assoc 0 --l1-cyc 1 --l2-size 14 --l2-assoc 6 --l2-cyc 70

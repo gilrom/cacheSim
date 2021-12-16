@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <stdint.h>
+#include <bitset>
 #include "cache_sim.h"
 
 using std::FILE;
@@ -22,7 +23,7 @@ Cache::Cache(uint size, uint associativ, uint block_size) : size(size),
 {
 	
 	num_of_set_bits = size - (block_size + assoc);
-	num_of_tag_bits = 32 -2 -block_size -num_of_set_bits;
+	num_of_tag_bits = 32 -block_size -num_of_set_bits;
 
 	uint num_of_set = 1 << num_of_set_bits;
 	uint num_of_Ways = 1 << assoc;
@@ -271,9 +272,10 @@ void Cache::printCache()
 		std::cout<<"set "<<set<<":" << endl;
 		for (int way = 0 ; way < num_of_Ways ; way++)
 		{
+			std::bitset<32> bin(memory[set][way]->addr);
 			if(memory[set][way]->valid)
 			{
-				std::cout<<"	way "<<way<<": tag-"<<memory[set][way]->tag;
+				std::cout<<"	way "<<way<<": tag-"<<memory[set][way]->tag << "  addr: " << bin;
 				if (memory[set][way]->dirty)
 				{
 					std::cout<<" dirty";
@@ -307,9 +309,9 @@ double CacheSim::getL2MissRate()
 
 double CacheSim::avgAccTime()
 {
-	// double l1_hit_rate = 1-l1.getMissRate();
-	// double l2_hit_rate = 1-l2.getMissRate();
-	return L1Cyc + (l1.getMissRate() * (L2Cyc + (l2.getMissRate() * mem_cyc)));
+	double inst_count = l1.getNumOfAcc();
+	double total_time = (l1.getNumOfAcc() * L1Cyc) + l2.getNumOfAcc()*(L2Cyc) + num_of_mem_acc * mem_cyc;
+	return total_time/inst_count;
 }
 
 void CacheSim::read(uint32_t addr){
@@ -357,16 +359,16 @@ void CacheSim::read(uint32_t addr){
 			}
 		}
 	}
-	std::cout<<"memory picture:"<<endl;
-	std::cout<<"L1:"<<endl;
-	l1.printCache();
-	std::cout<<"L1: num of calls: "<< l1.num_of_calls<<endl;
-	std::cout<<"L1: num of miss: "<< l1.num_of_miss<<endl;
-	std::cout<<"L2:"<<endl;
-	l2.printCache();
-	std::cout<<"L2: num of calls: "<< l2.num_of_calls<<endl;
-	std::cout<<"L2: num of miss: "<< l2.num_of_miss<<endl;
-	std::cout<<"num of mem acc: "<< num_of_mem_acc<<endl;
+	// std::cout<<"memory picture:"<<endl;
+	// std::cout<<"L1:"<<endl;
+	// l1.printCache();
+	// std::cout<<"L1: num of calls: "<< l1.num_of_calls<<endl;
+	// std::cout<<"L1: num of miss: "<< l1.num_of_miss<<endl;
+	// std::cout<<"L2:"<<endl;
+	// l2.printCache();
+	// std::cout<<"L2: num of calls: "<< l2.num_of_calls<<endl;
+	// std::cout<<"L2: num of miss: "<< l2.num_of_miss<<endl;
+	// std::cout<<"num of mem acc: "<< num_of_mem_acc<<endl;
 }
 
 void CacheSim::write(uint32_t addr){
@@ -426,16 +428,16 @@ void CacheSim::write(uint32_t addr){
 	else{
 		l1.writeReq(addr);
 	}
-	std::cout<<"memory picture:"<<endl;
-	std::cout<<"L1:"<<endl;
-	l1.printCache();
-	std::cout<<"L1: num of calls: "<< l1.num_of_calls<<endl;
-	std::cout<<"L1: num of miss: "<< l1.num_of_miss<<endl;
-	std::cout<<"L2:"<<endl;
-	l2.printCache();
-	std::cout<<"L2: num of calls: "<< l2.num_of_calls<<endl;
-	std::cout<<"L2: num of miss: "<< l2.num_of_miss<<endl;
-	std::cout<<"num of mem acc: "<< num_of_mem_acc<<endl;
+	// std::cout<<"memory picture:"<<endl;
+	// std::cout<<"L1:"<<endl;
+	// l1.printCache();
+	// std::cout<<"L1: num of calls: "<< l1.num_of_calls<<endl;
+	// std::cout<<"L1: num of miss: "<< l1.num_of_miss<<endl;
+	// std::cout<<"L2:"<<endl;
+	// l2.printCache();
+	// std::cout<<"L2: num of calls: "<< l2.num_of_calls<<endl;
+	// std::cout<<"L2: num of miss: "<< l2.num_of_miss<<endl;
+	// std::cout<<"num of mem acc: "<< num_of_mem_acc<<endl;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -505,18 +507,22 @@ int main(int argc, char **argv) {
 		}
 
 		// DEBUG - remove this line
-		cout << "operation: " << operation;
+		// cout << "operation: " << operation;
 
 		string cutAddress = address.substr(2); // Removing the "0x" part of the address
 
 		// DEBUG - remove this line
-		cout << ", address (hex)" << cutAddress;
+		// cout << ", address (hex)" << cutAddress;
 
 		unsigned long int num = 0;
 		num = strtoul(cutAddress.c_str(), NULL, 16);
 
 		// DEBUG - remove this line
-		cout << " (dec) " << num << endl;
+		// cout << " (dec) " << num << endl;
+
+		// std::bitset<32> b(num);
+
+		// cout << " bin:" << b << endl; 
 
 		if(operation == 'r')
 		{
