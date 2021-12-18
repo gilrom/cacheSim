@@ -307,11 +307,13 @@ double CacheSim::getL2MissRate()
 	return l2.getMissRate();
 }
 
-double CacheSim::avgAccTime()
+float CacheSim::avgAccTime()
 {
-	double inst_count = l1.getNumOfAcc();
-	double total_time = (l1.getNumOfAcc() * L1Cyc) + l2.getNumOfAcc()*(L2Cyc) + num_of_mem_acc * mem_cyc;
-	return total_time/inst_count;
+	int inst_count = l1.getNumOfAcc();
+	int total_time = (l1.getNumOfAcc() * L1Cyc) + l2.getNumOfAcc()*(L2Cyc) + num_of_mem_acc * mem_cyc;
+	float avgAccTime_WHATSAPP = L1Cyc + getL1MissRate()*L2Cyc + getL1MissRate()*getL2MissRate()*mem_cyc;
+	float avgAccTime_OURS = (float)total_time/(float)inst_count;
+	return avgAccTime_WHATSAPP;
 }
 
 void CacheSim::read(uint32_t addr){
@@ -537,7 +539,7 @@ int main(int argc, char **argv) {
 
 	double L1MissRate = simulator.getL1MissRate();
 	double L2MissRate = simulator.getL2MissRate();
-	double avgAccTime = simulator.avgAccTime();;
+	float avgAccTime = simulator.avgAccTime();;
 
 	printf("L1miss=%.03f ", L1MissRate);
 	printf("L2miss=%.03f ", L2MissRate);

@@ -68,7 +68,7 @@ class CacheSim{
 			uint L2Assoc, uint L1Cyc, uint L2Cyc, uint WrAlloc);
         double getL1MissRate();
         double getL2MissRate();
-        double avgAccTime();
+        float avgAccTime();
         void read(uint32_t addr);
         void write(uint32_t addr);
 };
